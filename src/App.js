@@ -1,23 +1,41 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect, useState } from 'react';
+import * as signalR from '@microsoft/signalr';
 
 function App() {
+  const [randomNumber, setRandomNumber] = useState(null);
+
+  useEffect(() => {
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl("/randomnumberhub")
+      .withAutomaticReconnect()
+      .build();
+
+    connection.on("ReceiveRandomNumber", (number) => {
+      setRandomNumber(number);
+    });
+
+    async function startConnection() {
+      try {
+        await connection.start();
+        console.log("SignalR Connected.");
+
+        connection.invoke("GenerateRandomNumber")
+          .catch((error) => console.error(error));
+      } catch (err) {
+        console.log(err);
+      }
+    }
+
+    startConnection();
+
+    return () => {
+      connection.stop();
+    };
+  }, []);
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <h1>Random Number: {randomNumber}</h1>
     </div>
   );
 }
